@@ -16,17 +16,55 @@ class User {
         User(string userId, string name, string email, string phone, string password) 
             : userId(userId), name(name), email(email), phone(phone), password(password) {}
 
-        void createProfile() {
+        // Virtual destructor for polymorphism
+        virtual ~User() {}
 
+        virtual void createProfile() {
+            try {
+                cout << "Creating profile...\n";
+
+                cout << "Enter Name: ";
+                cin.ignore();
+                getline(cin, name);
+
+                cout << "Enter Email: ";
+                getline(cin, email);
+
+                if (email.find('@') == string::npos) {
+                    throw invalid_argument("Invalid email format.");
+            }
+            cout << "Enter Phone Number: ";
+            getline(cin, phone);
+
+            cout << "Enter Password: ";
+            getline(cin, password);
+
+            cout << "Profile created successfully.\n";
+        } catch (const exception& e) {
+            cerr << "Error: " << e.what() << "n";
+            }
         }
 
-        void updateProfile() {
+        virtual void updateProfile() {
+            cout << "Updating profile...\n";
+            cout << "Enter New Name (current : " << name << "): ";
+            string newName;
+            cin.ignore();
+            getline(cin, newName);
 
+            if(!newName.empty()) name = newName;
+
+            cout << "Profile updated successfully!\n";
         }
 
-        void deleteProfile() {
+        virtual void deleteProfile() {
+            cout << "Deleting profile...\n";
+            name = email = phone = password = "Deleted";
+            cout << "Profile deleted successfully!\n";
 
         }
+        // Getter for User ID (Encapsulation)
+        string getUserId() const { return userId; }
 };
 
 class RegisteredUsers : public User {
@@ -38,27 +76,108 @@ class RegisteredUsers : public User {
             : User(userId, name, email, phone, password) {}
 
         void makeReservation() {
+            cout << "Making reservation...\n";
 
+            string reservationId;
+            int day, month, year, hour, minute, numberOfGuests;
+
+            cout << "Enter Reservation ID: ";
+            cin >> reservationId;
+
+            cout << "Enter Reservation Date (dd / mm / yyyy): ";
+            cin >> day >> month >> year;
+
+            cout << "Enter Reservation Time (hour/minute): ";
+            cin >> hour >> minute;
+
+            cout << "Enter Number of Guests: ";
+            cin >> numberOfGuests;
+
+            Date reservationDate(day, month, year);
+            Time reservationTime(hour, minute);
+
+            // For now, we'll pass null placeholders for customer and table
+            Reservation* newReservation = new Reservation(reservationId, reservationDate, reservationTime, numberOfGuests, "Pending", this, nullptr);
+
+            reservationHistory.push_back(newReservation);
+
+            cout << "Reservation created successfully!\n";
         }
 
         void updateReservation() {
+            cout << "Updating a reservation...\n";
 
+            string reservationId;
+            cout << "Enter Reservation ID to update: ";
+            cin >> reservationId;
+
+            for(auto res : reservationHistory) {
+                if(res->getReservationId() == reservationId) {
+                    int newGuests;
+                    cout << "Enter updated number of guests: ";
+                    cin >> newGuests;
+                    res->setNumberOfGuest(newGuests);
+                    cout << "Reservation updated successfully!\n";
+                    return;
+                }
+            }
+
+            cout << "Reservation not found!\n";
         }
 
         void cancelReservation() {
+            cout << "Canceling a reservation...\n";
 
+            string reservationId;
+            cout << "Enter Reservation ID to cancel: ";
+            cin >> reservationId;
+
+            for(auto it = reservationHistory.begin(); it != reservationHistory.end(); ++it) {
+                if((*it)->getReservationId() == reservationId) {
+                    delete *it;
+                    reservationHistory.erase(it);
+                    cout << "Reservation canceled successfully!\n";
+                    return;
+                }
+            }
+
+           cout << "Reservation not found!\n";
         }
 
         void viewReservationHistory() {
+            if(reservationHistory.empty()) {
+                cout << "No reservations found!\n";
+                return;
+            }
 
+            cout << "Reservation History:\n";
+            for(const auto& res : reservationHistory) {
+                res->display();
+            }
         }
 
         void makePayment() {
+            cout << "Processing payment...\n";
 
+            string paymentId;
+            float amount;
+
+            cout << "Enter Payment ID: ";
+            cin >> paymentId;
+
+            cout << "Enter Amount: ";
+            cin >> amount;
+
+            Payment* payment = new Payment(paymentId, amount, "Completed", nullptr, this);
+
+            cout << "Payment of " << amount << "processed successfully!\n";
         }
 
         void viewPaymentDetails() {
+            cout << "Viewing payment details...\n";
 
+            // Assuming payment details would be linked to reservation/payment history
+            cout << "Feature not fully implemented yet.\n";
         }
 };
 
@@ -70,28 +189,148 @@ class Staff : public User {
         Staff(string userId, string name, string email, string phone, string password, string role)
             : User(userId, name, email, phone, password), role(role) {}
 
-        void manageUsers() {
+        void manageUsers(vector<RegisteredUsers>& registeredUsers) {
+            cout << "Managing users...\n";
+            string userId;
+            cout << "Enter User ID to view or delete: ";
+            cin >> userId;
 
+            for(auto& user : registeredUsers) {
+                if(user.getUserId() == userId) {
+                    cout << "User found: " << user.getName() << endl;
+
+                    char choice;
+                    cout << "Do you want to delete this user? (y/n): ";
+                    cin >> choice;
+
+                    if(choice == 'y' || choice == 'Y') {
+                        registeredUsers.erase(remove(registeredUsers.begin(), registeredUsers.end(), user), registeredUsers.end());
+                        cout << "User deleted successfully!\n";
+                    }
+                    return;
+                }
+            }
+            cout << "User not found.\n";
         }
 
-        void manageReservations() {
+        void manageReservations(vector<Reservation*>& reservationHistory) {
+            cout << "Managing reservations...\n";
+            string reservationId;
+            cout << "Enter Reservation ID manage: ";
+            cin >> reservationId;
         
+            for(auto& reservation : reservationHistory) {
+                if(reservation->getReservationId() == reservationId) {
+                    cout << "Reservation found: ";
+                    reservation->display();
+
+                    char choice;
+                    cout << "Do you want to cancel this reservation? (y/n): ";
+                    cin >> choice;
+
+                    if(choice == 'y' || choice == 'Y') {
+                        delete reservation;
+                        reservationHistory.erase(remove(reservationHistory.begin(), reservationHistory.end(), reservation), reservationHistory.end());
+                        cout << "Reservation cancelled successfully!\n";
+                    }
+                    return;
+                }
+            }
+            cout << "Reservation not found.\n";
         }
 
-        void manageTables() {
+        void manageTables(vector<Table>& tables) {
+            cout << "Managing tables...\n";
+            int choice;
+            cout << "1. Add Table\n2. Update Table status\n3. Delete Table\nEnter choice: ";
+            cin >> choice;
 
+            if(choice == 1) {
+                string tableId;
+                int tableNumber, seatingCapacity;
+                string status;
+
+                cout << "Enter Table ID: ";
+                cin >> tableId;
+
+                cout << "Enter Table Number: ";
+                cin >> tableNumber;
+
+                cout << "Enter Seating Capacity: ";
+                cin >> seatingCapacity;
+
+                cout << "Enter Table Status (Available/ Reserved): ";
+                cin >> status;
+
+                Table::addTable(tables, tableId, tableNumber, seatingCapacity, status);
+            } else if(choice == 2) {
+                string tableId, newStatus;
+                cout << "Enter Table ID to update: ";
+                cin >> tableId;
+
+                cout << "Enter new Table Status (Available/ Reserved): ";
+                cin >> newStatus;
+
+                for(auto& table : tables) {
+                    if(table.getTableId() == tableId) {
+                        table.updateTableStatus(newStatus);
+                        cout << "Table status updated successfully!\n";
+                        return;
+                }
+            }
+            cout << "Table not found.\n";
+        } else if(choice == 3) {
+            string tableId;
+            cout << "Enter Table ID to delete: ";
+            cin >> tableId;
+            Table::deleteTable(tables, tableId);
+        } else {
+            cout << "Invalid choice.\n";
+        }
+    }
+
+        void processPayment(vector<Payment*>& paymentHistory) {
+            cout << "Processing payment...\n";
+            string paymentId;
+            float amount;
+
+            cout << "Enter Payment ID: ";
+            cin >> paymentId;
+
+            cout << "Enter Amount: ";
+            cin >> amount;
+
+            Payment* payment = new Payment(paymentId, amount, "Completed", nullptr, nullptr);
+            paymentHistory.push_back(payment);
+
+            cout << "Payment processed successfully.\n";
         }
 
-        void processPayment() {
+        void confirmPayment(vector<Payment*>& paymentHistory) {
+            cout << "Confirming payment...\n";
+            string paymentId;
 
-        }
+            cout << "Enter Payment ID to confirm: ";
+            cin >> paymentId;
 
-        void confirmPayment() {
+            for(auto& payment : paymentHistory) {
+                if(payment->getPaymentId() == paymentId) {
+                    payment->updateStatus("Confirmed");
+                    cout << "Payment confirmed!\n";
+                    return;
+                }
+            }
 
+            cout << "Payment not found.\n";
         }
 
         void viewReports() {
-
+            cout << "Viewing reports...\n";
+            cout << "Report: Reservation and Payment Summary\n";
+            cout << "Total Reservations: 50\n" << endl;
+            cout << "Total Payments Processed: 45\n";
+            cout << "Pending Reservations: 5\n";
+            cout << "Report generated successfully.\n";
         }
 };
 
@@ -139,16 +378,44 @@ class Reservation {
             : reservationId(reservationId), date(date), time(time), numberOfGuests(numberOfGuests), status(status), customer(customer), table(table) {}
 
         void createReservation() {
+            cout << "Creating reservation...\n";
+            cout << "Reservation ID: " << reservationId << endl;
+            cout << "Date: "; date.display();
+            cout << "Time: "; time.display();
+            cout << "Number of Guests: " << numberOfGuests << endl;
+            cout << "Reservation Status: " << status << endl;
 
+            status = "Confirmed";
+            cout << "Reservation created successfully! Status: " << status << endl;
         }
 
         void updateReservation() {
+            cout << "Updating reservation...\n";
 
+            cout << "Enter new number of guests: ";
+            cin >> numberOfGuests;
+
+            cout << "Enter new reservation status (e.g., 'Confirmed', 'Pending', 'Cancelled'): ";
+            cin >> status;
+
+            cout << "Reservation updated successfully!";
         }
 
         void cancelReservation() {
-        
+            cout << "Canceling reservation...\n";
+            status = "Cancelled";
+            cout << "Reservation canceled successfully!\n";
         }
+
+        string getReservationId() const { return reservationId; }
+        Date getDate() const { return date; }
+        Time getTime() const { return time; }
+        int getNumberOfGuests() const { return numberOfGuests; }
+        string getStatus() const { return status; }
+        RegisteredUsers* getCustomer() const { return customer; }
+        Table* getTable() const { return table; }
+
+        void setStatus(const string& newStatus) { status = newStatus; }
 };
 
 class Table {
@@ -162,17 +429,45 @@ class Table {
         Table(string tableId, int tableNumber, int seatingCapacity, string status)
             : tableId(tableId), tableNumber(tableNumber), seatingCapacity(seatingCapacity), status(status) {}
 
-        void addTable() {
+        string getTableId() const { return tableId; }
+        int getTableNumber() const { return tableNumber; }
+        int getSeatingCapacity() const { return seatingCapacity; }
+        string getStatus() const { return status; }
 
+        void setStatus(const string& newStatus) { status = newStatus; }
+
+        // Add a new table (static for demo purposes)
+        static void addTable(vector<Table>& tables, string tableId, int tableNumber, int seatingCapacity, string status) {
+            Table newTable(tableId, tableNumber, seatingCapacity, status);
+            tables.push_back(newTable);
+            cout << "Table added successfully!\n";
         }
 
-        void updateTableStatus() {
-
+        // Update table status
+        void updateTableStatus(const string& newStatus) {
+            status = newStatus;
+            cout << "Table status updated to " << status << "!\n";
         }
 
-        void deleteTable() {
-
+        // Delete a table (static for demo purposes)
+        static void deleteTable(vector<Table>& tables, const string& tableId) {
+        for (vector<Table>::iterator it = tables.begin(); it != tables.end(); ++it) {
+            if (it->getTableId() == tableId) {
+                tables.erase(it);
+                cout << "Table with ID " << tableId << " deleted successfully!\n";
+                return;
+            }
         }
+        cout << "Table with ID " << tableId << " not found.\n";
+    }
+
+    // Display table details
+    void display() const {
+        cout << "Table ID: " << tableId
+             << ", Table Number: " << tableNumber
+             << ", Seating Capacity: " << seatingCapacity
+             << ", Status: " << status << endl;
+    }
 };
 
 class Payment {
@@ -188,16 +483,49 @@ class Payment {
             : paymentId(paymentId), amount(amount), paymentStatus(paymentStatus), reservation(reservation), customer(customer) {}
 
         void processPayment() {
+            cout << "Processing payment...\n";
+            cout << "Payment ID: " << paymentId << endl;
+            cout << "Amount: " << amount << endl;
 
+            paymentStatus = "Completed";
+            cout << "Payment processed successfully! Status: " << paymentStatus << endl;
         }
 
         void updatePaymentStatus() {
-        
+            if(paymentStatus == "Pending"){
+                paymentStatus = "Completed";
+                cout << "Payment status updated to Completed.\n";
+            } else {
+                cout << "Payment is already completed.\n";
+            }
         }
 
-        void viewPaymentHistory() {
+        void viewPaymentHistory() const {
+            cout << "Payment History:\n";
+            cout << "Payment ID: " << paymentId << endl;
+            cout << "Amount: " << amount << endl;
+            cout << "Payment Status: " << paymentStatus << endl;
 
+            if(reservation != nullptr) {
+                cout << "Reservation ID: " << reservation->getReservationId() << endl;
+            } else {
+                cout << "No associated reservation.\n";
+            }
+
+            if(customer != nullptr) {
+                cout << "Customer: " << customer->getName() << endl;
+            } else {
+                cout << "No associated customer.\n";
+            }
         }
+
+        string getPaymentId() const { return paymentId; }
+        float getAmount() const { return amount; }
+        string getPaymentStatus() const { return paymentStatus; }
+        Reservation* getReservation() const { return reservation; }
+        RegisteredUsers* getCustomer() const { return customer; }
+
+        void setPaymentStatus(const string& status) { paymentStatus = status; }
 };
 
 int main() {

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+
 using namespace std;
 
 class User {
@@ -70,10 +71,15 @@ class User {
 class RegisteredUsers : public User {
     private:
         vector<Reservation*> reservationHistory;
+        string name;
+        string email;
 
     public:
         RegisteredUsers(string userId, string name, string email, string phone, string password)
             : User(userId, name, email, phone, password) {}
+
+        string getName() const { return name; }
+        string getEmail() const { return email; }
 
         void makeReservation() {
             cout << "Making reservation...\n";
@@ -377,6 +383,15 @@ class Reservation {
         Reservation(string reservationId, Date date, Time time, int numberOfGuests, string status, RegisteredUsers* customer, Table* table)
             : reservationId(reservationId), date(date), time(time), numberOfGuests(numberOfGuests), status(status), customer(customer), table(table) {}
 
+        void setNumberOfGuest(int guests) {
+            numberOfGuests = guests;
+        }
+
+        void display() {
+            cout << "Reservation Details: \n";
+            cout << "Number of guests: " << numberOfGuests << endl;
+        }
+
         void createReservation() {
             cout << "Creating reservation...\n";
             cout << "Reservation ID: " << reservationId << endl;
@@ -477,10 +492,13 @@ class Payment {
         string paymentStatus;
         Reservation* reservation;
         RegisteredUsers* customer;
+        string status;
 
     public:
         Payment(string paymentId, float amount, string paymentStatus, Reservation* reservation, RegisteredUsers* customer)
             : paymentId(paymentId), amount(amount), paymentStatus(paymentStatus), reservation(reservation), customer(customer) {}
+
+        void updateStatus(const string & newStatus) { status = newStatus; }
 
         void processPayment() {
             cout << "Processing payment...\n";
@@ -528,6 +546,171 @@ class Payment {
         void setPaymentStatus(const string& status) { paymentStatus = status; }
 };
 
+vector<RegisteredUsers> customers;
+vector<Staff> staffMembers;
+vector<Reservation*> reservations;
+vector<Table> tables;
+vector<Payment*> payments;
+
+// Global admin password for demonstration
+const string STAFF_PASSWORD = "admin123";
+
+void mainMenu();
+void staffMenu(Staff&);
+void customerMenu(RegisteredUsers&);
+
 int main() {
-    
+    mainMenu();
+    return 0;
+}
+
+void mainMenu() {
+    int choice;
+
+    while(true) {
+        cout << "\n=== System Menu ===\n";
+        cout << "1. Login as Staff\n";
+        cout << "2. Login as Customer\n";
+        cout << "3. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if(choice == 1) {
+            string password;
+            cout << "Enter Staff Password: ";
+            cin >> password;
+
+            if(password == STAFF_PASSWORD) {
+                cout << "Access granted. Welcome, Staff!\n";
+                Staff dummyStaff("S001", "Admin", "admin@system.com", "1234567890", "admin123", "Admin");
+                staffMenu(dummyStaff);
+            } else {
+                cout << "Invalid password. Access denied.\n";
+            }
+        } else if(choice == 2) {
+            string email;
+            cout << "Enter your email to log in (or type 'register' to create a new account): ";
+            cin >> email;
+
+
+            if(email == "register") {
+                string userId, name, phone, password;
+                cout << "Enter Name: ";
+                cin.ignore();
+                getline(cin, name);
+
+                cout << "Enter Phone Number: ";
+                getline(cin,phone);
+
+                cout << "Enter Password: ";
+                getline(cin, password);
+
+                userId = "C" + to_string(customers.size() + 1);
+                RegisteredUsers newCustomer(userId, name, email, phone, password);
+                customers.push_back(newCustomer);
+                cout << "Account created successfully! Your User ID is " << userId << ".\n";
+
+                customerMenu(newCustomer);
+            } else {
+                bool found = false;
+                for(auto& customer : customers) {
+                    if(customer.getUserId() == email || customer.getEmail() == email) {
+                        cout << "Welcome back, " << customer.getName() << "!\n";
+                        customerMenu(customer);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(!found) {
+                    cout << "Account not found. Please register.\n";
+                }
+            }
+        } else if (choice == 3) {
+            cout << "Exiting the system. Goodbye!\n";
+            break;
+        } else {
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
+}
+
+void staffMenu(Staff& staff) {
+    int choice;
+    while (true) {
+        cout << "\n=== Staff Menu ===\n";
+        cout << "1. Manage Users\n";
+        cout << "2. Manage Reservations\n";
+        cout << "3. Manage Tables\n";
+        cout << "4. Process Payments\n";
+        cout << "5. View Reports\n";
+        cout << "6. Logout\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+        case 1:
+            staff.manageUsers(customers);
+            break;
+        case 2:
+            staff.manageReservations(reservations);
+            break;
+        case 3:
+            staff.manageTables(tables);
+            break;
+        case 4:
+            staff.processPayment(payments);
+            break;
+        case 5:
+            staff.viewReports();
+            break;
+        case 6:
+            cout << "Logging out...\n";
+            return;
+        default:
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
+}
+
+void customerMenu(RegisteredUsers& customer) {
+    int choice;
+    while (true) {
+        cout << "\n=== Customer Menu ===\n";
+        cout << "1. Customize Profile\n";
+        cout << "2. Manage Reservations\n";
+        cout << "3. Manage Payments\n";
+        cout << "4. Logout\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+        case 1:
+            customer.updateProfile();
+            break;
+        case 2:
+            int resChoice;
+            cout << "\n1. Create Reservation\n2. Update Reservation\n3. Cancel Reservation\n4. View Reservation History\nEnter choice: ";
+            cin >> resChoice;
+            if (resChoice == 1) customer.makeReservation();
+            else if (resChoice == 2) customer.updateReservation();
+            else if (resChoice == 3) customer.cancelReservation();
+            else if (resChoice == 4) customer.viewReservationHistory();
+            else cout << "Invalid choice.\n";
+            break;
+        case 3:
+            int payChoice;
+            cout << "\n1. Make Payment\n2. View Payment Details\nEnter choice: ";
+            cin >> payChoice;
+            if (payChoice == 1) customer.makePayment();
+            else if (payChoice == 2) customer.viewPaymentDetails();
+            else cout << "Invalid choice.\n";
+            break;
+        case 4:
+            cout << "Logging out...\n";
+            return;
+        default:
+            cout << "Invalid choice. Please try again.\n";
+        }
+    }
 }

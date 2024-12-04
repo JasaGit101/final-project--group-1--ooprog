@@ -2,6 +2,12 @@
     "files.associations": {
         "iostream": "cpp",
         "vector": "cpp",
-        "istream": "cpp"
-    }
+        "istream": "cpp",
+        "limits": "cpp",
+        "ostream": "cpp",
+        "iosfwd": "cpp",
+        "string": "cpp",
+        "typeinfo": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
